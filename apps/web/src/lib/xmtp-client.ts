@@ -35,14 +35,18 @@ export async function createXMTPClient(
   config: XMTPClientConfig = { env: 'production' }
 ): Promise<Client> {
   try {
+    console.log('🔐 Creating XMTP client with config:', config)
+    console.log('📝 This will require a signature from your wallet')
+
     const client = await Client.create(signer, {
       env: config.env,
     })
 
-    console.log('✅ XMTP client initialized')
+    console.log('✅ XMTP client initialized successfully')
     return client
   } catch (error) {
     console.error('❌ Failed to initialize XMTP client:', error)
+    console.error('Error details:', error)
     throw error
   }
 }

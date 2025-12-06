@@ -27,14 +27,17 @@ export function useXMTPClient(signer: XMTPSigner | null) {
       setError(null)
 
       try {
+        console.log('🔄 Initializing XMTP client...')
         const xmtpClient = await createXMTPClient(signer, {
           env: env.NEXT_PUBLIC_XMTP_ENV,
         })
 
+        console.log('✅ XMTP client created successfully')
         if (mounted) {
           setClient(xmtpClient)
         }
       } catch (err) {
+        console.error('❌ XMTP initialization error:', err)
         if (mounted) {
           setError(err instanceof Error ? err : new Error('Unknown error'))
         }
