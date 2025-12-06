@@ -127,24 +127,30 @@ export function useConversation(client: Client | null, peerAddress: string) {
   useEffect(() => {
     if (!conversation) return
 
-    let active = true
+    console.log('📡 Starting message stream...')
 
-    const streamMessages = async () => {
-      try {
-        const stream = await conversation.stream()
-        for await (const message of stream) {
-          if (!active) break
-          setMessages((prev) => [...prev, message])
-        }
-      } catch (error) {
-        console.error('Error streaming messages:', error)
+    // conversation.stream() returns a StreamCloser, use callback pattern
+    const streamCloser = conversation.stream((error: Error | null, message: any) => {
+      if (error) {
+        console.error('❌ Stream error:', error)
+        return
       }
-    }
+      if (message) {
+        console.log('📨 New message received:', message)
+        setMessages((prev) => {
+          // Check if message already exists to avoid duplicates
+          const exists = prev.some((m) => m.id === message.id)
+          if (exists) return prev
+          return [...prev, message]
+        })
+      }
+    })
 
-    streamMessages()
+    console.log('✅ Message stream started')
 
     return () => {
-      active = false
+      console.log('🛑 Closing message stream')
+      streamCloser?.close?.()
     }
   }, [conversation])
 
@@ -152,7 +158,21 @@ export function useConversation(client: Client | null, peerAddress: string) {
     async (content: string) => {
       if (!conversation) throw new Error('No conversation initialized')
 
-      await conversation.send(content)
+      console.log('📤 Sending message:', content)
+
+      try {
+        // Send the message
+        await conversation.send(content)
+        console.log('✅ Message sent successfully')
+
+        // Re-sync to get the latest messages including the one we just sent
+        await conversation.sync()
+        const updatedMessages = await conversation.messages()
+        setMessages(updatedMessages)
+      } catch (error) {
+        console.error('❌ Failed to send message:', error)
+        throw error
+      }
     },
     [conversation]
   )
