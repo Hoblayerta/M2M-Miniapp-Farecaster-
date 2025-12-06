@@ -10,7 +10,10 @@ export function createXMTPSigner(walletClient: any): XMTPSigner {
     getIdentifier: async () => {
       const address = walletClient.account?.address
       if (!address) throw new Error('No address found')
-      return address.toLowerCase()
+      return {
+        identifier: address.toLowerCase(),
+        identifierKind: 'Ethereum' as const,
+      }
     },
     signMessage: async (message: string | Uint8Array) => {
       const messageBytes =
