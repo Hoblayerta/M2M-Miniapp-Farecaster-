@@ -40,8 +40,25 @@ export function ConversationList({
     <div className="max-h-[400px] overflow-y-auto">
       <div className="space-y-2">
         {conversations.map((dm: any) => {
-          // dmPeerInboxId() is a method, not a property
-          const peerInboxId = dm.dmPeerInboxId ? dm.dmPeerInboxId() : ''
+          // Debug: log the entire dm object to see what's available
+          console.log('Raw DM object:', dm)
+          console.log('DM keys:', Object.keys(dm))
+          console.log('dmPeerInboxId type:', typeof dm.dmPeerInboxId)
+
+          // Try to get peer inbox ID
+          let peerInboxId = ''
+          try {
+            if (typeof dm.dmPeerInboxId === 'function') {
+              peerInboxId = dm.dmPeerInboxId()
+              console.log('dmPeerInboxId() returned:', peerInboxId)
+            } else if (dm.peerInboxId) {
+              peerInboxId = dm.peerInboxId
+              console.log('Using peerInboxId property:', peerInboxId)
+            }
+          } catch (error) {
+            console.error('Error getting peer inbox ID:', error)
+          }
+
           const isActive = peerInboxId === activeAddress
 
           console.log('Conversation:', {
