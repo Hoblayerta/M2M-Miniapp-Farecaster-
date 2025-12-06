@@ -1,5 +1,15 @@
-import { Client, type Signer as XMTPSigner } from '@xmtp/browser-sdk'
+import { Client, type Signer as XMTPSigner, type Identifier } from '@xmtp/browser-sdk'
 import { toBytes } from 'viem'
+
+/**
+ * Convert Ethereum address to XMTP Identifier object
+ */
+export function addressToIdentifier(address: string): Identifier {
+  return {
+    identifier: address.toLowerCase(),
+    identifierKind: 'Ethereum' as const,
+  }
+}
 
 /**
  * Create XMTP-compatible signer from wallet client
@@ -62,8 +72,9 @@ export async function canMessage(
   addresses: string[]
 ): Promise<Map<string, boolean>> {
   try {
-    // Cast addresses to the expected type
-    return await client.canMessage(addresses as any)
+    // Convert addresses to Identifier objects
+    const identifiers = addresses.map(addressToIdentifier)
+    return await client.canMessage(identifiers)
   } catch (error) {
     console.error('Error checking canMessage:', error)
     return new Map()
