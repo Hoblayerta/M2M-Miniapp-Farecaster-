@@ -65,15 +65,19 @@ export function useXMTPClient(signer: XMTPSigner | null) {
 
 /**
  * Hook to manage a single DM conversation
+ * @param peerIdentifier Can be either an Ethereum address (0x...) or an inbox ID
  */
-export function useConversation(client: Client | null, peerAddress: string) {
+export function useConversation(
+  client: Client | null,
+  peerIdentifier: string
+) {
   const [conversation, setConversation] = useState<any | null>(null)
   const [messages, setMessages] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
 
   // Initialize conversation
   useEffect(() => {
-    if (!client || !peerAddress) {
+    if (!client || !peerIdentifier) {
       setIsLoading(false)
       return
     }
@@ -81,22 +85,36 @@ export function useConversation(client: Client | null, peerAddress: string) {
     const init = async () => {
       setIsLoading(true)
       try {
-        console.log('🔄 Initializing conversation with address:', peerAddress)
+        // Check if it's an Ethereum address or inbox ID
+        const isEthAddress = peerIdentifier.startsWith('0x')
+
+        console.log('🔄 Initializing conversation with:', {
+          peerIdentifier,
+          isEthAddress,
+        })
 
         // Sync conversations first
         await client.conversations.sync()
         console.log('✅ Conversations synced')
 
-        // Convert Ethereum address to Identifier
-        const identifier = addressToIdentifier(peerAddress)
-        console.log('🔍 Looking up inbox ID for identifier:', identifier)
+        let inboxId: string
 
-        // Find inbox ID from address
-        const inboxId = await client.findInboxIdByIdentifier(identifier)
-        console.log('✅ Found inbox ID:', inboxId)
+        if (isEthAddress) {
+          // Convert Ethereum address to inbox ID
+          const identifier = addressToIdentifier(peerIdentifier)
+          console.log('🔍 Looking up inbox ID for address:', identifier)
 
-        if (!inboxId) {
-          throw new Error('Could not find inbox ID for address')
+          const foundInboxId = await client.findInboxIdByIdentifier(identifier)
+          console.log('✅ Found inbox ID:', foundInboxId)
+
+          if (!foundInboxId) {
+            throw new Error('Could not find inbox ID for address')
+          }
+          inboxId = foundInboxId
+        } else {
+          // Already an inbox ID
+          console.log('📍 Using inbox ID directly:', peerIdentifier)
+          inboxId = peerIdentifier
         }
 
         // Get or create DM using inbox ID
@@ -121,7 +139,7 @@ export function useConversation(client: Client | null, peerAddress: string) {
     }
 
     init()
-  }, [client, peerAddress])
+  }, [client, peerIdentifier])
 
   // Stream new messages
   useEffect(() => {

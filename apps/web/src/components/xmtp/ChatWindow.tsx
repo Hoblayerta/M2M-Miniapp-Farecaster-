@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 
 interface ChatWindowProps {
   client: Client
-  peerAddress: string
+  peerAddress: string // Can be either Ethereum address (0x...) or inbox ID
 }
 
 export function ChatWindow({ client, peerAddress }: ChatWindowProps) {

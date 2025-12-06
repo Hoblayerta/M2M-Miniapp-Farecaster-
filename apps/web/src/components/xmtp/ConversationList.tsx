@@ -40,8 +40,16 @@ export function ConversationList({
     <div className="max-h-[400px] overflow-y-auto">
       <div className="space-y-2">
         {conversations.map((dm: any) => {
-          const peerInboxId = typeof dm.peerInboxId === 'function' ? '' : dm.peerInboxId
+          // dmPeerInboxId() is a method, not a property
+          const peerInboxId = dm.dmPeerInboxId ? dm.dmPeerInboxId() : ''
           const isActive = peerInboxId === activeAddress
+
+          console.log('Conversation:', {
+            id: dm.id,
+            peerInboxId,
+            activeAddress,
+            isActive,
+          })
 
           return (
             <Card
@@ -49,7 +57,10 @@ export function ConversationList({
               className={`p-3 cursor-pointer transition-colors hover:bg-gray-50 ${
                 isActive ? 'bg-blue-50 border-blue-300' : ''
               }`}
-              onClick={() => onSelectConversation(peerInboxId)}
+              onClick={() => {
+                console.log('Clicked conversation with inbox ID:', peerInboxId)
+                onSelectConversation(peerInboxId)
+              }}
             >
               <div className="flex items-center justify-between">
                 <div className="flex-1 min-w-0">
