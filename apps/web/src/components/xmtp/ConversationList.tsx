@@ -45,7 +45,11 @@ export function ConversationList({
                 typeof dm.peerInboxId === 'function'
                   ? await dm.peerInboxId()
                   : ''
-              console.log('Fetched peer inbox ID:', peerInboxId, 'for DM:', dm.id)
+
+              console.log('Raw peer inbox ID:', peerInboxId, 'for DM:', dm.id)
+              console.log('Type:', typeof peerInboxId)
+              console.log('Is valid format:', !peerInboxId.includes(':') && !peerInboxId.startsWith('0x'))
+
               return { dm, peerInboxId }
             } catch (error) {
               console.error('Error fetching peer inbox ID:', error)
@@ -53,7 +57,31 @@ export function ConversationList({
             }
           })
         )
-        setConversationsWithPeers(withPeers)
+
+        // Filter out duplicates based on peerInboxId
+        const uniqueConversations = withPeers.reduce((acc, curr) => {
+          // Skip if peerInboxId is empty or invalid format
+          if (!curr.peerInboxId) return acc
+
+          // Skip if it contains ':' or starts with '0x' (invalid inbox ID format)
+          if (curr.peerInboxId.includes(':') || curr.peerInboxId.startsWith('0x')) {
+            console.log('Skipping invalid inbox ID format:', curr.peerInboxId)
+            return acc
+          }
+
+          // Check if we already have this peerInboxId
+          const exists = acc.some(item => item.peerInboxId === curr.peerInboxId)
+          if (!exists) {
+            acc.push(curr)
+          } else {
+            console.log('Skipping duplicate conversation with inbox ID:', curr.peerInboxId)
+          }
+
+          return acc
+        }, [] as ConversationWithPeer[])
+
+        console.log('Unique conversations:', uniqueConversations.length, 'from', withPeers.length)
+        setConversationsWithPeers(uniqueConversations)
       } catch (error) {
         console.error('Error fetching peer IDs:', error)
       } finally {
