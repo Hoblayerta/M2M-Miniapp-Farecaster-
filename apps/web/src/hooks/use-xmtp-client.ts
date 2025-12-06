@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Client, type Dm } from '@xmtp/browser-sdk'
 import type { Signer as XMTPSigner } from '@xmtp/browser-sdk'
-import { createXMTPClient } from '@/lib/xmtp-client'
+import { createXMTPClient, addressToIdentifier } from '@/lib/xmtp-client'
 import { env } from '@/lib/env'
 
 /**
@@ -81,20 +81,40 @@ export function useConversation(client: Client | null, peerAddress: string) {
     const init = async () => {
       setIsLoading(true)
       try {
+        console.log('🔄 Initializing conversation with address:', peerAddress)
+
         // Sync conversations first
         await client.conversations.sync()
+        console.log('✅ Conversations synced')
 
-        // Get or create DM using newDm
-        const dm = await client.conversations.newDm(peerAddress.toLowerCase())
+        // Convert Ethereum address to Identifier
+        const identifier = addressToIdentifier(peerAddress)
+        console.log('🔍 Looking up inbox ID for identifier:', identifier)
+
+        // Find inbox ID from address
+        const inboxId = await client.findInboxIdByIdentifier(identifier)
+        console.log('✅ Found inbox ID:', inboxId)
+
+        if (!inboxId) {
+          throw new Error('Could not find inbox ID for address')
+        }
+
+        // Get or create DM using inbox ID
+        console.log('📞 Creating DM with inbox ID:', inboxId)
+        const dm = await client.conversations.newDm(inboxId)
+        console.log('✅ DM created:', dm)
 
         setConversation(dm)
 
         // Load message history
+        console.log('📜 Loading message history...')
         await dm.sync()
         const msgs = await dm.messages()
+        console.log('✅ Loaded', msgs.length, 'messages')
         setMessages(msgs)
       } catch (error) {
-        console.error('Failed to initialize conversation:', error)
+        console.error('❌ Failed to initialize conversation:', error)
+        console.error('Error details:', error)
       } finally {
         setIsLoading(false)
       }
