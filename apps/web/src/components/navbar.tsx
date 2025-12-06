@@ -14,6 +14,7 @@ import {
 
 const navLinks = [
   { name: "Home", href: "/" },
+  { name: "Messages", href: "/chat" },
   { name: "Docs", href: "https://docs.celo.org", external: true },
 ]
 
