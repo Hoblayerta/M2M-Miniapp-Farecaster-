@@ -3,11 +3,17 @@
 import { Client, type Dm } from '@xmtp/browser-sdk'
 import { useConversations } from '@/hooks/use-xmtp-client'
 import { Card } from '@/components/ui/card'
+import { useState, useEffect } from 'react'
 
 interface ConversationListProps {
   client: Client
   onSelectConversation: (peerAddress: string) => void
   activeAddress?: string | null
+}
+
+interface ConversationWithPeer {
+  dm: any
+  peerInboxId: string
 }
 
 export function ConversationList({
@@ -16,8 +22,49 @@ export function ConversationList({
   activeAddress,
 }: ConversationListProps) {
   const { conversations, isLoading } = useConversations(client)
+  const [conversationsWithPeers, setConversationsWithPeers] = useState<
+    ConversationWithPeer[]
+  >([])
+  const [isLoadingPeers, setIsLoadingPeers] = useState(false)
 
-  if (isLoading) {
+  // Fetch peer inbox IDs for all conversations
+  useEffect(() => {
+    if (!conversations.length) {
+      setConversationsWithPeers([])
+      return
+    }
+
+    const fetchPeerIds = async () => {
+      setIsLoadingPeers(true)
+      try {
+        const withPeers = await Promise.all(
+          conversations.map(async (dm: any) => {
+            try {
+              // peerInboxId is an async function
+              const peerInboxId =
+                typeof dm.peerInboxId === 'function'
+                  ? await dm.peerInboxId()
+                  : ''
+              console.log('Fetched peer inbox ID:', peerInboxId, 'for DM:', dm.id)
+              return { dm, peerInboxId }
+            } catch (error) {
+              console.error('Error fetching peer inbox ID:', error)
+              return { dm, peerInboxId: '' }
+            }
+          })
+        )
+        setConversationsWithPeers(withPeers)
+      } catch (error) {
+        console.error('Error fetching peer IDs:', error)
+      } finally {
+        setIsLoadingPeers(false)
+      }
+    }
+
+    fetchPeerIds()
+  }, [conversations])
+
+  if (isLoading || isLoadingPeers) {
     return (
       <Card className="p-4">
         <p className="text-sm text-gray-500">Loading conversations...</p>
@@ -25,7 +72,7 @@ export function ConversationList({
     )
   }
 
-  if (conversations.length === 0) {
+  if (conversationsWithPeers.length === 0) {
     return (
       <Card className="p-4">
         <p className="text-sm text-gray-500 text-center">No conversations yet</p>
@@ -39,34 +86,8 @@ export function ConversationList({
   return (
     <div className="max-h-[400px] overflow-y-auto">
       <div className="space-y-2">
-        {conversations.map((dm: any) => {
-          // Debug: log the entire dm object to see what's available
-          console.log('Raw DM object:', dm)
-          console.log('DM keys:', Object.keys(dm))
-          console.log('dmPeerInboxId type:', typeof dm.dmPeerInboxId)
-
-          // Try to get peer inbox ID
-          let peerInboxId = ''
-          try {
-            if (typeof dm.dmPeerInboxId === 'function') {
-              peerInboxId = dm.dmPeerInboxId()
-              console.log('dmPeerInboxId() returned:', peerInboxId)
-            } else if (dm.peerInboxId) {
-              peerInboxId = dm.peerInboxId
-              console.log('Using peerInboxId property:', peerInboxId)
-            }
-          } catch (error) {
-            console.error('Error getting peer inbox ID:', error)
-          }
-
+        {conversationsWithPeers.map(({ dm, peerInboxId }) => {
           const isActive = peerInboxId === activeAddress
-
-          console.log('Conversation:', {
-            id: dm.id,
-            peerInboxId,
-            activeAddress,
-            isActive,
-          })
 
           return (
             <Card
@@ -88,7 +109,9 @@ export function ConversationList({
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
                     {dm.createdAtNs
-                      ? new Date(Number(dm.createdAtNs) / 1000000).toLocaleDateString()
+                      ? new Date(
+                          Number(dm.createdAtNs) / 1000000
+                        ).toLocaleDateString()
                       : 'Recent'}
                   </p>
                 </div>
