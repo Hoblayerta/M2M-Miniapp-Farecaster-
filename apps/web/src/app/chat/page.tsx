@@ -7,6 +7,7 @@ import { ChatWindow } from '@/components/xmtp/ChatWindow'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { isValidEthAddress, canMessage } from '@/lib/xmtp-client'
+import { PricingSettings } from '@/components/m2m/PricingSettings'
 
 export default function ChatPage() {
   const { client, isReady, isInitializing, address } = useXMTP()
@@ -150,6 +151,9 @@ export default function ChatPage() {
               />
             )}
           </Card>
+
+          {/* M2M Pricing Settings */}
+          <PricingSettings />
         </div>
 
         {/* Chat Area */}
