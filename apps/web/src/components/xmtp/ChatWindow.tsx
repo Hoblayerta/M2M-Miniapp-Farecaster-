@@ -5,6 +5,10 @@ import { Client } from '@xmtp/browser-sdk'
 import { useConversation } from '@/hooks/use-xmtp-client'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { ChatGatekeeper } from '@/components/m2m/ChatGatekeeper'
+import { useLocalMessageCounter } from '@/hooks/use-checkpoint-trigger'
+import { useCheckpointTrigger } from '@/hooks/use-checkpoint-trigger'
+import { useAccount } from 'wagmi'
 
 interface ChatWindowProps {
   client: Client
@@ -20,6 +24,22 @@ export function ChatWindow({ client, peerAddress }: ChatWindowProps) {
   const [isSending, setIsSending] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const [userAddress, setUserAddress] = useState<string>('')
+
+  // M2M Integration: Tracking de mensajes enviados
+  const { address: senderAddress } = useAccount()
+  const { localConsumed, incrementCount } = useLocalMessageCounter()
+
+  // M2M Integration: Checkpoints automáticos
+  const {
+    lastCheckpoint,
+    messagesSinceCheckpoint,
+    isSubmitting: isCheckpointing,
+    lastError: checkpointError,
+  } = useCheckpointTrigger(
+    senderAddress,
+    peerAddress as `0x${string}`,
+    localConsumed
+  )
 
   // Get user's inbox ID
   useEffect(() => {
@@ -43,6 +63,10 @@ export function ChatWindow({ client, peerAddress }: ChatWindowProps) {
     try {
       await sendMessage(input)
       setInput('')
+
+      // M2M Integration: Incrementar contador después de enviar mensaje
+      // Esto trigger checkpoints automáticos cada 25 mensajes o 1 hora
+      incrementCount()
     } catch (error) {
       console.error('Failed to send message:', error)
       alert('Failed to send message. Please try again.')
@@ -63,24 +87,61 @@ export function ChatWindow({ client, peerAddress }: ChatWindowProps) {
   }
 
   return (
-    <Card className="flex flex-col h-[600px]">
-      {/* Header */}
-      <div className="p-4 border-b bg-gray-50 rounded-t-lg">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="font-semibold text-sm">
-              {peerAddress.slice(0, 8)}...{peerAddress.slice(-6)}
-            </h3>
-            <p className="text-xs text-gray-500 mt-1">
-              End-to-end encrypted
-            </p>
+    <ChatGatekeeper
+      receiverAddress={peerAddress as `0x${string}`}
+      receiverName={`${peerAddress.slice(0, 8)}...${peerAddress.slice(-6)}`}
+    >
+      <Card className="flex flex-col h-[600px]">
+        {/* Header */}
+        <div className="p-4 border-b bg-gray-50 rounded-t-lg">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold text-sm">
+                {peerAddress.slice(0, 8)}...{peerAddress.slice(-6)}
+              </h3>
+              <p className="text-xs text-gray-500 mt-1">
+                End-to-end encrypted
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full" />
+              <span className="text-xs text-gray-600">Online</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-green-500 rounded-full" />
-            <span className="text-xs text-gray-600">Online</span>
-          </div>
+
+          {/* M2M Integration: Checkpoint info */}
+          {localConsumed > 0 && (
+            <div className="mt-3 text-xs text-gray-600 bg-white p-2 rounded border">
+              <div className="flex justify-between">
+                <span>Messages sent: {localConsumed}</span>
+                <span>Last synced: {lastCheckpoint}</span>
+              </div>
+              {messagesSinceCheckpoint > 0 && (
+                <div className="mt-1 flex items-center justify-between">
+                  <span>
+                    Next sync in: {25 - messagesSinceCheckpoint} messages
+                  </span>
+                  {isCheckpointing && (
+                    <span className="text-blue-600">⏳ Syncing...</span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* M2M Integration: Checkpoint error warning */}
+          {checkpointError && (
+            <div className="mt-2 p-2 rounded bg-yellow-50 border border-yellow-200">
+              <p className="text-xs text-yellow-700">
+                Sync warning: {checkpointError}
+                <br />
+                <span className="text-yellow-600">
+                  (You can keep chatting, we&apos;ll retry automatically)
+                </span>
+              </p>
+            </div>
+          )}
         </div>
-      </div>
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
@@ -166,6 +227,7 @@ export function ChatWindow({ client, peerAddress }: ChatWindowProps) {
           Messages are encrypted end-to-end with XMTP
         </p>
       </form>
-    </Card>
+      </Card>
+    </ChatGatekeeper>
   )
 }
