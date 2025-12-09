@@ -42,7 +42,9 @@ export interface XMTPClientConfig {
 
 /**
  * Initialize XMTP client with XMTP signer
- * Configured for iframe compatibility (Farcaster miniapps)
+ *
+ * IMPORTANT: Requires Cross-Origin headers to be set in next.config.js
+ * for OPFS (Origin Private File System) support
  */
 export async function createXMTPClient(
   signer: XMTPSigner,
@@ -52,15 +54,8 @@ export async function createXMTPClient(
     console.log('🔐 Creating XMTP client with config:', config)
     console.log('📝 This will require a signature from your wallet')
 
-    // Get account identifier for unique DB path
-    const identifier = await signer.getIdentifier()
-    const accountAddress = identifier.identifier.toLowerCase()
-
     const client = await Client.create(signer, {
       env: config.env,
-      // Use custom dbPath for iframe compatibility - avoid OPFS
-      // This uses IndexedDB instead of Origin Private File System
-      dbPath: `xmtp-${accountAddress}`,
     })
 
     console.log('✅ XMTP client initialized successfully')
