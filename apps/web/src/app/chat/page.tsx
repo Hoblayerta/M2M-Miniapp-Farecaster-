@@ -75,6 +75,20 @@ export default function ChatPage() {
                 You need to connect your wallet to use XMTP messaging
               </p>
             )}
+            {isInitializing && (
+              <div className="mt-4">
+                <p className="text-xs text-gray-500 mb-2">
+                  Stuck? Force a fresh start:
+                </p>
+                <Button
+                  onClick={() => window.location.reload()}
+                  variant="outline"
+                  size="sm"
+                >
+                  Restart XMTP
+                </Button>
+              </div>
+            )}
           </div>
         </Card>
       </div>

@@ -34,9 +34,17 @@ export function useXMTPClient(signer: XMTPSigner | null) {
         try {
           console.log(`🔄 Initializing XMTP client (attempt ${initAttemptRef.current + 1}/${MAX_RETRIES})...`)
 
-          const xmtpClient = await createXMTPClient(signer, {
-            env: env.NEXT_PUBLIC_XMTP_ENV,
+          // Add 30 second timeout to prevent infinite hanging
+          const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('XMTP initialization timeout (30s)')), 30000)
           })
+
+          const xmtpClient = await Promise.race([
+            createXMTPClient(signer, {
+              env: env.NEXT_PUBLIC_XMTP_ENV,
+            }),
+            timeoutPromise
+          ]) as Client
 
           console.log('✅ XMTP client created successfully')
 
@@ -55,6 +63,7 @@ export function useXMTPClient(signer: XMTPSigner | null) {
           if (initAttemptRef.current >= MAX_RETRIES) {
             if (mounted) {
               setError(error)
+              setIsInitializing(false)
             }
           } else {
             // Wait before retry (exponential backoff)
