@@ -15,10 +15,16 @@ export function addressToIdentifier(address: string): Identifier {
  * Create XMTP-compatible signer from wallet client
  */
 export function createXMTPSigner(walletClient: any): XMTPSigner {
+  console.log('📝 Creating XMTP signer with walletClient:', {
+    hasAccount: !!walletClient.account,
+    address: walletClient.account?.address,
+  })
+
   return {
     type: 'EOA',
     getIdentifier: async () => {
       const address = walletClient.account?.address
+      console.log('🔑 getIdentifier called, address:', address)
       if (!address) throw new Error('No address found')
       return {
         identifier: address.toLowerCase(),
@@ -26,11 +32,19 @@ export function createXMTPSigner(walletClient: any): XMTPSigner {
       }
     },
     signMessage: async (message: string | Uint8Array) => {
+      console.log('✍️ signMessage called - requesting wallet signature!')
+      console.log('Message type:', typeof message)
+      console.log('Message length:', message.length)
+
       const messageBytes =
         typeof message === 'string' ? toBytes(message) : message
+
+      console.log('📤 Calling walletClient.signMessage...')
       const signature = await walletClient.signMessage({
         message: { raw: messageBytes },
       })
+      console.log('✅ Signature received:', signature)
+
       return toBytes(signature)
     },
   }

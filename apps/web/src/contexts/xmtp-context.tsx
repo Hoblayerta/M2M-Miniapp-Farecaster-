@@ -23,18 +23,31 @@ export function XMTPProvider({ children }: { children: ReactNode }) {
 
   // Convert viem walletClient to XMTP Signer
   useEffect(() => {
+    console.log('🔍 XMTP Signer Setup:', {
+      hasWalletClient: !!walletClient,
+      isConnected,
+      address,
+      walletClientAccount: walletClient?.account?.address,
+    })
+
     if (!walletClient || !isConnected) {
+      console.warn('⚠️ Cannot create XMTP signer:', {
+        walletClient: !!walletClient,
+        isConnected,
+      })
       setSigner(null)
       return
     }
 
     try {
+      console.log('✅ Creating XMTP signer with wallet client')
       const xmtpSigner = createXMTPSigner(walletClient)
       setSigner(xmtpSigner)
+      console.log('✅ XMTP signer created successfully')
     } catch (error) {
-      console.error('Failed to create XMTP signer:', error)
+      console.error('❌ Failed to create XMTP signer:', error)
     }
-  }, [walletClient, isConnected])
+  }, [walletClient, isConnected, address])
 
   // Initialize XMTP client
   const { client, isInitializing, error, isReady } = useXMTPClient(signer)
