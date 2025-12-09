@@ -43,6 +43,7 @@ export function useXMTPClient(signer: XMTPSigner | null) {
           if (mounted) {
             setClient(xmtpClient)
             setError(null)
+            setIsInitializing(false)
           }
           return // Success, exit retry loop
         } catch (err) {
