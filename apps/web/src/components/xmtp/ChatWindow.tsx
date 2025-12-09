@@ -16,12 +16,13 @@ interface ChatWindowProps {
 }
 
 export function ChatWindow({ client, peerAddress }: ChatWindowProps) {
-  const { messages, sendMessage, isLoading } = useConversation(
+  const { messages, sendMessage, isLoading, error: conversationError } = useConversation(
     client,
     peerAddress
   )
   const [input, setInput] = useState('')
   const [isSending, setIsSending] = useState(false)
+  const [sendError, setSendError] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const [userAddress, setUserAddress] = useState<string>('')
 
@@ -60,6 +61,7 @@ export function ChatWindow({ client, peerAddress }: ChatWindowProps) {
     if (!input.trim() || isSending) return
 
     setIsSending(true)
+    setSendError(null)
     try {
       await sendMessage(input)
       setInput('')
@@ -69,10 +71,32 @@ export function ChatWindow({ client, peerAddress }: ChatWindowProps) {
       incrementCount()
     } catch (error) {
       console.error('Failed to send message:', error)
-      alert('Failed to send message. Please try again.')
+      const errorMsg = error instanceof Error ? error.message : 'Failed to send message'
+      setSendError(errorMsg)
+      // Auto-clear error after 5 seconds
+      setTimeout(() => setSendError(null), 5000)
     } finally {
       setIsSending(false)
     }
+  }
+
+  // Show error state if conversation failed to load
+  if (conversationError) {
+    return (
+      <Card className="p-6">
+        <div className="text-center">
+          <p className="text-red-600 mb-2">❌ Failed to load conversation</p>
+          <p className="text-sm text-gray-500">{conversationError.message}</p>
+          <Button
+            onClick={() => window.location.reload()}
+            className="mt-4"
+            size="sm"
+          >
+            Retry
+          </Button>
+        </div>
+      </Card>
+    )
   }
 
   if (isLoading) {
@@ -198,6 +222,13 @@ export function ChatWindow({ client, peerAddress }: ChatWindowProps) {
 
       {/* Input Area */}
       <form onSubmit={handleSend} className="p-4 border-t bg-white rounded-b-lg">
+        {/* Send error display */}
+        {sendError && (
+          <div className="mb-2 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
+            ❌ {sendError}
+          </div>
+        )}
+
         <div className="flex gap-2">
           <input
             type="text"

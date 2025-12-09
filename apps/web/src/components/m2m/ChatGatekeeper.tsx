@@ -1,6 +1,6 @@
 'use client'
 
-import { ReactNode, useState } from 'react'
+import { ReactNode, useState, useEffect } from 'react'
 import { useMessagePackages } from '@/hooks/use-m2m-contract'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -27,10 +27,30 @@ export function ChatGatekeeper({
   children,
   onPermissionChange,
 }: ChatGatekeeperProps) {
-  const { chatPermission, availableMessages } = useMessagePackages(receiverAddress)
+  const { chatPermission, availableMessages, refetchBalance } = useMessagePackages(receiverAddress)
   const [showPurchaseModal, setShowPurchaseModal] = useState(false)
+  const [lastBalance, setLastBalance] = useState<bigint>(0n)
 
   const displayName = receiverName || truncateAddress(receiverAddress)
+
+  // Real-time balance polling (every 3 seconds when chat is active)
+  useEffect(() => {
+    if (!chatPermission?.allowed || chatPermission.accessType !== 'paid') {
+      return
+    }
+
+    // Track balance changes
+    if (availableMessages !== lastBalance) {
+      setLastBalance(availableMessages)
+    }
+
+    // Poll balance every 3 seconds
+    const pollInterval = setInterval(() => {
+      refetchBalance?.()
+    }, 3000)
+
+    return () => clearInterval(pollInterval)
+  }, [chatPermission, availableMessages, lastBalance, refetchBalance])
 
   // Loading state
   if (!chatPermission) {
