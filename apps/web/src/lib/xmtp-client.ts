@@ -57,8 +57,9 @@ export interface XMTPClientConfig {
 /**
  * Initialize XMTP client with XMTP signer
  *
- * IMPORTANT: Requires Cross-Origin headers to be set in next.config.js
- * for OPFS (Origin Private File System) support
+ * Uses in-memory storage (dbPath: null) to avoid OPFS issues in iframes
+ * Messages won't persist across page reloads, but this is required for
+ * iframe compatibility in Farcaster miniapps
  */
 export async function createXMTPClient(
   signer: XMTPSigner,
@@ -67,9 +68,14 @@ export async function createXMTPClient(
   try {
     console.log('🔐 Creating XMTP client with config:', config)
     console.log('📝 This will require a signature from your wallet')
+    console.log('⚠️ Using in-memory storage for iframe compatibility')
 
     const client = await Client.create(signer, {
       env: config.env,
+      // CRITICAL: dbPath: null disables persistent storage
+      // This avoids OPFS errors in third-party iframes (Farcaster)
+      // Trade-off: Messages won't persist across page reloads
+      dbPath: null,
     })
 
     console.log('✅ XMTP client initialized successfully')
