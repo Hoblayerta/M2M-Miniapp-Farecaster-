@@ -111,11 +111,7 @@ export function ChatWindow({ client, peerAddress }: ChatWindowProps) {
   }
 
   return (
-    <ChatGatekeeper
-      receiverAddress={peerAddress as `0x${string}`}
-      receiverName={`${peerAddress.slice(0, 8)}...${peerAddress.slice(-6)}`}
-    >
-      <Card className="flex flex-col h-[600px]">
+    <Card className="flex flex-col h-[600px]">
         {/* Header */}
         <div className="p-4 border-b bg-gray-50 rounded-t-lg">
           <div className="flex items-center justify-between">
@@ -258,7 +254,6 @@ export function ChatWindow({ client, peerAddress }: ChatWindowProps) {
           Messages are encrypted end-to-end with XMTP
         </p>
       </form>
-      </Card>
-    </ChatGatekeeper>
+    </Card>
   )
 }
