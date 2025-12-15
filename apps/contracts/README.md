@@ -1,99 +1,66 @@
-# MiniAppM2M - Smart Contracts
+## Foundry
 
-This directory contains the smart contracts for MiniAppM2M, built with Hardhat and optimized for the Celo blockchain.
+**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
 
-## 🚀 Quick Start
+Foundry consists of:
 
-```bash
-# Install dependencies
-pnpm install
+- **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
+- **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
+- **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
+- **Chisel**: Fast, utilitarian, and verbose solidity REPL.
 
-# Compile contracts
-pnpm compile
+## Documentation
 
-# Run tests
-pnpm test
+https://book.getfoundry.sh/
 
-# Deploy to Alfajores testnet
-pnpm deploy:alfajores
+## Usage
 
-# Deploy to Sepolia testnet
-pnpm deploy:sepolia
+### Build
 
-# Deploy to Celo mainnet
-pnpm deploy:celo
+```shell
+$ forge build
 ```
 
-## 📜 Available Scripts
+### Test
 
-- `pnpm compile` - Compile smart contracts
-- `pnpm test` - Run contract tests
-- `pnpm deploy` - Deploy to local network
-- `pnpm deploy:alfajores` - Deploy to Celo Alfajores testnet
-- `pnpm deploy:sepolia` - Deploy to Celo Sepolia testnet
-- `pnpm deploy:celo` - Deploy to Celo mainnet
-- `pnpm verify` - Verify contracts on Celoscan
-- `pnpm clean` - Clean artifacts and cache
-
-## 🌐 Networks
-
-### Celo Mainnet
-- **Chain ID**: 42220
-- **RPC URL**: https://forno.celo.org
-- **Explorer**: https://celoscan.io
-
-### Alfajores Testnet
-- **Chain ID**: 44787
-- **RPC URL**: https://alfajores-forno.celo-testnet.org
-- **Explorer**: https://alfajores.celoscan.io
-- **Faucet**: https://faucet.celo.org
-
-### Sepolia Testnet
-- **Chain ID**: 11142220
-- **RPC URL**: https://forno.celo-sepolia.celo-testnet.org
-- **Explorer**: https://celo-sepolia.blockscout.com
-- **Faucet**: https://faucet.celo.org/celo-sepolia
-
-## 🔧 Environment Setup
-
-1. Copy the environment template:
-   ```bash
-   cp .env.example .env
-   ```
-
-2. Fill in your private key and API keys:
-   ```env
-   PRIVATE_KEY=your_private_key_without_0x_prefix
-   CELOSCAN_API_KEY=your_celoscan_api_key
-   ```
-
-## 📁 Project Structure
-
-```
-contracts/          # Smart contract source files
-├── Lock.sol        # Sample timelock contract
-
-test/              # Contract tests
-├── Lock.ts        # Tests for Lock contract
-
-ignition/          # Deployment scripts
-└── modules/
-    └── Lock.ts    # Lock contract deployment
-
-hardhat.config.ts  # Hardhat configuration
-tsconfig.json      # TypeScript configuration
+```shell
+$ forge test
 ```
 
-## 🔐 Security Notes
+### Format
 
-- Never commit your `.env` file with real private keys
-- Use a dedicated wallet for development/testing
-- Test thoroughly on Alfajores before mainnet deployment
-- Consider using a hardware wallet for mainnet deployments
+```shell
+$ forge fmt
+```
 
-## 📚 Learn More
+### Gas Snapshots
 
-- [Hardhat Documentation](https://hardhat.org/docs)
-- [Celo Developer Documentation](https://docs.celo.org)
-- [Celo Smart Contract Best Practices](https://docs.celo.org/developer/contractkit)
-- [Viem Documentation](https://viem.sh) (Ethereum library used by Hardhat)
+```shell
+$ forge snapshot
+```
+
+### Anvil
+
+```shell
+$ anvil
+```
+
+### Deploy
+
+```shell
+$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
+```
+
+### Cast
+
+```shell
+$ cast <subcommand>
+```
+
+### Help
+
+```shell
+$ forge --help
+$ anvil --help
+$ cast --help
+```

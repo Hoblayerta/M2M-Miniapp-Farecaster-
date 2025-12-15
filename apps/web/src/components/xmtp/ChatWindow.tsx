@@ -9,6 +9,8 @@ import { ChatGatekeeper } from '@/components/m2m/ChatGatekeeper'
 import { useLocalMessageCounter } from '@/hooks/use-checkpoint-trigger'
 import { useCheckpointTrigger } from '@/hooks/use-checkpoint-trigger'
 import { useAccount } from 'wagmi'
+import { useMessagingAccess } from '@/hooks/use-messaging-access'
+import { formatUnits } from 'viem'
 
 interface ChatWindowProps {
   client: Client
@@ -42,6 +44,13 @@ export function ChatWindow({ client, peerAddress }: ChatWindowProps) {
     localConsumed
   )
 
+  // M2M Integration: Validación de acceso a mensajería vía Supabase
+  const {
+    data: messagingAccess,
+    isLoading: isCheckingAccess,
+    refetch: refetchAccess,
+  } = useMessagingAccess(peerAddress)
+
   // Get user's inbox ID
   useEffect(() => {
     const getInboxId = async () => {
@@ -60,6 +69,19 @@ export function ChatWindow({ client, peerAddress }: ChatWindowProps) {
     e.preventDefault()
     if (!input.trim() || isSending) return
 
+    // M2M Integration: Validar acceso ANTES de enviar mensaje
+    if (!messagingAccess?.canMessage) {
+      setSendError(
+        messagingAccess?.reason === 'mutual_contact'
+          ? 'Waiting for mutual contact confirmation...'
+          : messagingAccess?.reason === 'no_credits'
+          ? 'No message credits available. Purchase a message package first.'
+          : 'Cannot send message at this time.'
+      )
+      setTimeout(() => setSendError(null), 5000)
+      return
+    }
+
     setIsSending(true)
     setSendError(null)
     try {
@@ -69,6 +91,9 @@ export function ChatWindow({ client, peerAddress }: ChatWindowProps) {
       // M2M Integration: Incrementar contador después de enviar mensaje
       // Esto trigger checkpoints automáticos cada 25 mensajes o 1 hora
       incrementCount()
+
+      // M2M Integration: Actualizar estado de créditos después de enviar
+      await refetchAccess()
     } catch (error) {
       console.error('Failed to send message:', error)
       const errorMsg = error instanceof Error ? error.message : 'Failed to send message'
@@ -129,9 +154,47 @@ export function ChatWindow({ client, peerAddress }: ChatWindowProps) {
             </div>
           </div>
 
+          {/* M2M Integration: Messaging Access Status */}
+          {messagingAccess && (
+            <div className="mt-3 text-xs bg-white p-2 rounded border">
+              {messagingAccess.isMutualContact ? (
+                <div className="flex items-center gap-2 text-green-600">
+                  <span className="text-base">✓</span>
+                  <span className="font-medium">Mutual Contact - Free Messaging</span>
+                </div>
+              ) : messagingAccess.canMessage ? (
+                <div className="space-y-1">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Message Credits:</span>
+                    <span className="font-semibold text-blue-600">
+                      {messagingAccess.remainingMessages} remaining
+                    </span>
+                  </div>
+                  {messagingAccess.recipientPrice && (
+                    <div className="text-gray-500">
+                      Price: {formatUnits(messagingAccess.recipientPrice, 18)} cUSD/msg
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-orange-600">
+                    <span className="text-base">⚠</span>
+                    <span className="font-medium">No Message Credits</span>
+                  </div>
+                  {messagingAccess.recipientPrice && (
+                    <div className="text-gray-600">
+                      Purchase credits to message this user ({formatUnits(messagingAccess.recipientPrice, 18)} cUSD/msg)
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* M2M Integration: Checkpoint info */}
           {localConsumed > 0 && (
-            <div className="mt-3 text-xs text-gray-600 bg-white p-2 rounded border">
+            <div className="mt-2 text-xs text-gray-600 bg-white p-2 rounded border">
               <div className="flex justify-between">
                 <span>Messages sent: {localConsumed}</span>
                 <span>Last synced: {lastCheckpoint}</span>
@@ -237,7 +300,7 @@ export function ChatWindow({ client, peerAddress }: ChatWindowProps) {
           />
           <Button
             type="submit"
-            disabled={!input.trim() || isSending}
+            disabled={!input.trim() || isSending || !messagingAccess?.canMessage}
             className="px-6"
           >
             {isSending ? (
@@ -245,6 +308,8 @@ export function ChatWindow({ client, peerAddress }: ChatWindowProps) {
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
                 Sending...
               </span>
+            ) : !messagingAccess?.canMessage ? (
+              'No Credits'
             ) : (
               'Send'
             )}
