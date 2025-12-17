@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Client } from '@xmtp/browser-sdk'
 import { useConversation } from '@/hooks/use-xmtp-client'
+import { useMessagingAccess } from '@/hooks/use-messaging-access'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 
@@ -16,8 +17,14 @@ export function ChatWindow({ client, peerAddress }: ChatWindowProps) {
     client,
     peerAddress
   )
+  const {
+    data: messagingAccess,
+    isLoading: isCheckingAccess,
+    refetch: refetchAccess,
+  } = useMessagingAccess(peerAddress)
   const [input, setInput] = useState('')
   const [isSending, setIsSending] = useState(false)
+  const [sendError, setSendError] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const [userAddress, setUserAddress] = useState<string>('')
 
@@ -39,13 +46,26 @@ export function ChatWindow({ client, peerAddress }: ChatWindowProps) {
     e.preventDefault()
     if (!input.trim() || isSending) return
 
+    // Validate messaging access
+    if (!messagingAccess?.canMessage) {
+      setSendError(
+        messagingAccess?.reason === 'no_credits'
+          ? 'No message credits available. Purchase a message package first.'
+          : 'Cannot send message at this time.'
+      )
+      return
+    }
+
+    setSendError(null)
     setIsSending(true)
     try {
       await sendMessage(input)
       setInput('')
+      // Refresh access after sending to update credit count
+      await refetchAccess()
     } catch (error) {
       console.error('Failed to send message:', error)
-      alert('Failed to send message. Please try again.')
+      setSendError('Failed to send message. Please try again.')
     } finally {
       setIsSending(false)
     }
@@ -137,6 +157,30 @@ export function ChatWindow({ client, peerAddress }: ChatWindowProps) {
 
       {/* Input Area */}
       <form onSubmit={handleSend} className="p-4 border-t bg-white rounded-b-lg">
+        {/* Messaging Access Status */}
+        {isCheckingAccess ? (
+          <div className="mb-3 text-xs text-gray-500">Checking access...</div>
+        ) : messagingAccess?.isMutualContact ? (
+          <div className="mb-3 flex items-center gap-2 text-xs text-green-600 bg-green-50 px-3 py-2 rounded">
+            <span>✓ Mutual Contact - Free Messaging</span>
+          </div>
+        ) : messagingAccess?.canMessage ? (
+          <div className="mb-3 flex items-center gap-2 text-xs text-blue-600 bg-blue-50 px-3 py-2 rounded">
+            <span>Message Credits: {messagingAccess.remainingMessages} remaining</span>
+          </div>
+        ) : (
+          <div className="mb-3 flex items-center gap-2 text-xs text-orange-600 bg-orange-50 px-3 py-2 rounded">
+            <span>⚠ No Message Credits - Purchase required</span>
+          </div>
+        )}
+
+        {/* Error Display */}
+        {sendError && (
+          <div className="mb-3 text-xs text-red-600 bg-red-50 px-3 py-2 rounded">
+            {sendError}
+          </div>
+        )}
+
         <div className="flex gap-2">
           <input
             type="text"
