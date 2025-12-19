@@ -2,6 +2,7 @@
 
 import { Client, type Dm } from '@xmtp/browser-sdk'
 import { useConversations } from '@/hooks/use-xmtp-client'
+import { ContactStatusBadge } from '@/components/m2m/ContactActionPanel'
 import { Card } from '@/components/ui/card'
 import { useState, useEffect } from 'react'
 
@@ -120,9 +121,8 @@ export function ConversationList({
           return (
             <Card
               key={dm.id}
-              className={`p-3 cursor-pointer transition-colors hover:bg-gray-50 ${
-                isActive ? 'bg-blue-50 border-blue-300' : ''
-              }`}
+              className={`p-3 cursor-pointer transition-colors hover:bg-gray-50 ${isActive ? 'bg-blue-50 border-blue-300' : ''
+                }`}
               onClick={() => {
                 console.log('Clicked conversation with inbox ID:', peerInboxId)
                 onSelectConversation(peerInboxId)
@@ -135,13 +135,19 @@ export function ConversationList({
                       ? `${peerInboxId.slice(0, 8)}...${peerInboxId.slice(-6)}`
                       : 'Unknown'}
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {dm.createdAtNs
-                      ? new Date(
+                  <div className="flex items-center justify-between mt-1">
+                    <p className="text-xs text-gray-500">
+                      {dm.createdAtNs
+                        ? new Date(
                           Number(dm.createdAtNs) / 1000000
                         ).toLocaleDateString()
-                      : 'Recent'}
-                  </p>
+                        : 'Recent'}
+                    </p>
+                    {/* Show contact status badge if it looks like an ETH address */}
+                    {peerInboxId?.startsWith('0x') && peerInboxId.length === 42 && (
+                      <ContactStatusBadge contactAddress={peerInboxId as `0x${string}`} />
+                    )}
+                  </div>
                 </div>
                 {isActive && (
                   <div className="w-2 h-2 bg-blue-500 rounded-full ml-2" />

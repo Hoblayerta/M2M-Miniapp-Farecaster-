@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useXMTP } from '@/contexts/xmtp-context'
 import { ConversationList } from '@/components/xmtp/ConversationList'
 import { ChatWindow } from '@/components/xmtp/ChatWindow'
+import { ContactActionPanel } from '@/components/m2m/ContactActionPanel'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { isValidEthAddress, canMessage } from '@/lib/xmtp-client'
@@ -12,6 +13,7 @@ export default function ChatPage() {
   const { client, isReady, isInitializing, address } = useXMTP()
   const [activeChat, setActiveChat] = useState<string | null>(null)
   const [newChatAddress, setNewChatAddress] = useState('')
+  const [pendingChatAddress, setPendingChatAddress] = useState<`0x${string}` | null>(null)
   const [isChecking, setIsChecking] = useState(false)
 
   const startNewChat = async () => {
@@ -41,7 +43,8 @@ export default function ChatPage() {
         return
       }
 
-      setActiveChat(newChatAddress)
+      // Show contact action panel first
+      setPendingChatAddress(newChatAddress as `0x${string}`)
       setNewChatAddress('')
     } catch (error) {
       console.error('Error checking address:', error)
@@ -61,8 +64,8 @@ export default function ChatPage() {
               {isInitializing
                 ? 'Initializing XMTP client...'
                 : !address
-                ? 'Please connect your wallet to start messaging'
-                : 'Setting up your secure messaging...'}
+                  ? 'Please connect your wallet to start messaging'
+                  : 'Setting up your secure messaging...'}
             </p>
             {isInitializing && (
               <div className="flex justify-center">
@@ -156,6 +159,36 @@ export default function ChatPage() {
         <div className="md:col-span-2">
           {activeChat && client ? (
             <ChatWindow client={client} peerAddress={activeChat} />
+          ) : pendingChatAddress ? (
+            // Show contact action panel before starting chat
+            <Card className="p-6 h-[600px]">
+              <div className="space-y-4">
+                <div className="text-center">
+                  <h3 className="text-xl font-semibold mb-2">New Chat</h3>
+                  <p className="text-gray-500 text-sm">
+                    {pendingChatAddress.slice(0, 10)}...{pendingChatAddress.slice(-8)}
+                  </p>
+                </div>
+
+                <ContactActionPanel
+                  contactAddress={pendingChatAddress}
+                  onChatStart={() => {
+                    setActiveChat(pendingChatAddress)
+                    setPendingChatAddress(null)
+                  }}
+                />
+
+                <div className="text-center">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setPendingChatAddress(null)}
+                  >
+                    ← Go Back
+                  </Button>
+                </div>
+              </div>
+            </Card>
           ) : (
             <Card className="p-12 h-[600px] flex items-center justify-center">
               <div className="text-center max-w-md">
