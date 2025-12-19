@@ -14,10 +14,12 @@
     "contracts:deploy": "turbo run deploy --filter=hardhat",
     "contracts:deploy:alfajores": "turbo run deploy:alfajores --filter=hardhat",
     "contracts:deploy:sepolia": "turbo run deploy:sepolia --filter=hardhat",
-    "contracts:deploy:celo": "turbo run deploy:celo --filter=hardhat"
+    "contracts:deploy:celo": "turbo run deploy:celo --filter=hardhat",
+    "db:backfill": "tsx scripts/backfill-events.ts"
   },
   "devDependencies": {
     "@types/node": "^20.8.0",
+    "tsx": "^4.21.0",
     "turbo": "^1.10.16",
     "typescript": "^5.2.2"
   },
